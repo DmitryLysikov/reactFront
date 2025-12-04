@@ -6,6 +6,7 @@ const TerserPlugin = require('terser-webpack-plugin');
 const SungeroRemoteComponentMetadataPlugin = require('@directum/sungero-remote-component-metadata-plugin')
 const { dependencies } = require('./package.json');
 const manifest = require('./component.manifest');
+const path = require('path');
 
 module.exports = (env, argv) => {
   const devMode = argv.mode === 'development';
@@ -26,8 +27,11 @@ module.exports = (env, argv) => {
       chunkFilename: devMode ? `chunks/[name]_${manifest.componentVersion}.js` : `chunks/[name]_${manifest.componentVersion}_[chunkhash:8].js`,
     },
     resolve: {
-      modules: [ 'etc', 'src', 'node_modules' ],
+      modules: ['etc', 'src', 'node_modules'],
       extensions: ['.tsx', '.ts', '.js'],
+      alias: {
+        '@': path.resolve(__dirname, 'src'),
+      },
     },
     module: {
       rules: [
@@ -39,7 +43,8 @@ module.exports = (env, argv) => {
           test: /\.css$/,
           use: [
             { loader: standaloneMode ? 'style-loader' : MiniCssExtractPlugin.loader },
-            { loader: 'css-loader' }
+            { loader: 'css-loader' },
+            { loader: 'postcss-loader' }
           ],
         },
         {
@@ -54,7 +59,7 @@ module.exports = (env, argv) => {
           test: /\.(png|svg|jpg|jpeg|gif)$/,
           type: 'asset/resource',
           generator: {
-            filename: function(file) {
+            filename: function (file) {
               return `images/[name]_${manifest.componentVersion}.[ext]`;
             }
           }
@@ -71,7 +76,7 @@ module.exports = (env, argv) => {
               comments: false
             }
           },
-          exclude: [ /\.min\.js$/gi ] // skip pre-minified libs
+          exclude: [/\.min\.js$/gi] // skip pre-minified libs
         }),
         new CssMinimizerPlugin({
           minimizerOptions: {
@@ -86,36 +91,36 @@ module.exports = (env, argv) => {
         })
       ]
     },
-    plugins: standaloneMode ? [ new HtmlWebpackPlugin({ template: './index.html' }) ] : 
-    [
-      new MiniCssExtractPlugin({ 
-        filename: devMode ? 'css/[name].css' : 'css/[name].[contenthash:8].css',
-        // Убрать insert, если требуется поднять приоритет стилей стороннего контрола над стилями веб клиента.
-        insert: linkTag => document.head.prepend(linkTag)
-      }),
-      new ModuleFederationPlugin({
-        name: publicName,
-        filename: 'remoteEntry.js',
-        exposes: {
-          loaders: './component.loaders.ts',
-          publicPath: './public-path.js'
-        },
-        shared: {
-          //...deps,
-          react: {
-            requiredVersion: dependencies.react
+    plugins: standaloneMode ? [new HtmlWebpackPlugin({ template: './index.html' })] :
+      [
+        new MiniCssExtractPlugin({
+          filename: devMode ? 'css/[name].css' : 'css/[name].[contenthash:8].css',
+          // Убрать insert, если требуется поднять приоритет стилей стороннего контрола над стилями веб клиента.
+          insert: linkTag => document.head.prepend(linkTag)
+        }),
+        new ModuleFederationPlugin({
+          name: publicName,
+          filename: 'remoteEntry.js',
+          exposes: {
+            loaders: './component.loaders.ts',
+            publicPath: './public-path.js'
           },
-          'react-dom': {
-            requiredVersion: dependencies['react-dom']
+          shared: {
+            //...deps,
+            react: {
+              requiredVersion: dependencies.react
+            },
+            'react-dom': {
+              requiredVersion: dependencies['react-dom']
+            },
+            i18next: {
+              eager: false,
+              singleton: true,
+              requiredVersion: dependencies.i18next
+            }
           },
-          i18next: {
-            eager: false,
-            singleton: true,
-            requiredVersion: dependencies.i18next
-          }
-        },
-      }),
-      generateMetadataPlugin
-    ]
+        }),
+        generateMetadataPlugin
+      ]
   }
 }

@@ -1,7 +1,12 @@
-// Точка входа для отладки контролов в режиме standalone (отдельное приложение, без веб клиента Sungero).
-
+// Точка входа для отладки контролов в режиме standalone
 import api from './host-api-stub';
 import context from './host-context-stub';
-import loadApp from './src/loaders/performed-work-details-grid-card-loader';
+import loadApp from './src/loaders/question-card-loader';
+import './index.css';
 
-loadApp(document.getElementById('app'), context, api);
+// Передаём объект вместо отдельных аргументов
+loadApp({
+  container: document.getElementById('app'),
+  initialContext: context,
+  api: api,
+});
