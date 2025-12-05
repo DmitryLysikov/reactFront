@@ -5,6 +5,19 @@ module.exports = {
   // Описание контролов, которые есть в компоненте. Реализация контролов находится в папке ./src/controls.
   controls: [
     {
+      name: 'Question',
+      loaders: [
+        {
+          name: 'question-card-loader',
+          scope: 'Card'
+        }
+      ],
+      displayNames: [
+        { locale: 'en', name: 'Question' },
+        { locale: 'ru', name: 'Вопрос' },
+      ]
+    },
+    {
       name: 'Gantt',
       // Загрузчики контрола. Загрузчик - это функция, принимающая информацию о контексте и точку доступа к API.
       // Задача загрузчика - смонтировать корневой UI-компонент контрола в указанный DOM-элемент.
