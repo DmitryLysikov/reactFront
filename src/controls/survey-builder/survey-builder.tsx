@@ -25,6 +25,7 @@ export function SurveyBuilder() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <div className="bg-gray-200 p-6 rounded-3xl space-y-6">
       {questions.map((question, index) => (
         <QuestionCard
           key={question.id}
@@ -32,6 +33,7 @@ export function SurveyBuilder() {
           questionNumber={index + 1}
         />
       ))}
+    </div>
 
       {/* Кнопка добавить вопрос */}
       <div className="flex justify-center">

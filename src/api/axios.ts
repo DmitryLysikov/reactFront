@@ -1,51 +1,34 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
+import axios, { InternalAxiosRequestConfig } from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api', // замени на свой URL
+  baseURL: 'http://127.0.0.1/Integration/odata/Vote/Vote.',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
+  },
+  auth: {
+    username: 'Administrator',
+    password: '11',
   },
 })
 
 // REQUEST INTERCEPTOR
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken')
-    
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🚀 [${config.method?.toUpperCase()}] ${config.url}`)
-    }
-
+    console.log(`🚀 [${config.method?.toUpperCase()}] ${config.baseURL}${config.url}`)
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
 // RESPONSE INTERCEPTOR
 api.interceptors.response.use(
   (response) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`✅ [${response.status}] ${response.config.url}`)
-    }
+    console.log(`✅ [${response.status}] ${response.config.url}`)
     return response
   },
-  async (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken')
-      // window.location.href = '/login'
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`❌ [${error.response?.status}] ${error.config?.url}`)
-    }
-
+  (error) => {
+    console.error(`❌ [${error.response?.status}] ${error.config?.url}`, error.response?.data)
     return Promise.reject(error)
   }
 )

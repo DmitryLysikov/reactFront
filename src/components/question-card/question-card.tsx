@@ -165,8 +165,6 @@ export function QuestionCard({ questionId, questionNumber }: QuestionCardProps) 
           </SelectContent>
         </Select>
       </div>
-
-      {/* ===== Остальной код без изменений ===== */}
       
       {/* Тип: Один из списка / Несколько из списка */}
       {isChoiceType && (

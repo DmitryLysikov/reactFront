@@ -1,3 +1,5 @@
 export { default as api } from './axios'
 export * from './survey-api'
+export * from './poll-api'
 export * from './hooks/use-surveys'
+export * from './hooks/use-polls'
