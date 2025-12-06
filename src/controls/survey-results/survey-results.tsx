@@ -1,32 +1,69 @@
+// src/controls/survey-results/survey-results.tsx
 import React from "react"
+import { useSurveys, useDeleteSurvey } from "@/api"  // ← импорт хуков
 
 export function SurveyResults() {
-  return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-2xl p-8 shadow-sm">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          Результаты опроса
-        </h2>
-        <p className="text-gray-500">
-          Здесь будут отображаться ответы респондентов
-        </p>
-        
-        {/* TODO: Статистика, графики, таблица ответов */}
-        <div className="mt-8 grid grid-cols-3 gap-4">
-          <div className="bg-orange-50 rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-orange-600">0</div>
-            <div className="text-sm text-gray-600">Всего ответов</div>
-          </div>
-          <div className="bg-green-50 rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-green-600">0%</div>
-            <div className="text-sm text-gray-600">Завершили</div>
-          </div>
-          <div className="bg-blue-50 rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-blue-600">0:00</div>
-            <div className="text-sm text-gray-600">Среднее время</div>
-          </div>
-        </div>
+  // Загрузка списка опросов
+  const { data: surveys, isLoading, error } = useSurveys()
+  
+  // Мутация для удаления
+  const deleteSurvey = useDeleteSurvey()
+
+  // Загрузка
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="text-gray-500">Загрузка опросов...</div>
       </div>
+    )
+  }
+
+  // Ошибка
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto bg-red-50 text-red-600 p-4 rounded-lg">
+        Ошибка загрузки: {error.message}
+      </div>
+    )
+  }
+
+  // Пустой список
+  if (!surveys?.length) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        Пока нет сохранённых опросов
+      </div>
+    )
+  }
+
+  // Список опросов
+  return (
+    <div className="max-w-2xl mx-auto space-y-4">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">
+        Сохранённые опросы
+      </h2>
+      
+      {surveys.map((survey) => (
+        <div
+          key={survey.id}
+          className="bg-white rounded-xl p-6 shadow-sm flex justify-between items-center"
+        >
+          <div>
+            <h3 className="font-semibold text-gray-800">{survey.title}</h3>
+            <p className="text-sm text-gray-500">
+              {survey.questions.length} вопросов
+            </p>
+          </div>
+          
+          <button
+            onClick={() => deleteSurvey.mutate(survey.id)}
+            disabled={deleteSurvey.isPending}
+            className="text-red-500 hover:text-red-700 text-sm"
+          >
+            {deleteSurvey.isPending ? 'Удаление...' : 'Удалить'}
+          </button>
+        </div>
+      ))}
     </div>
   )
 }

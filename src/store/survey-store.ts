@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'  // ← для сохранения в localStorage
 
 type QuestionType = 'single' | 'multiple' | 'short' | 'long' | 'scale'
 
@@ -7,7 +8,6 @@ interface AttachedFile {
   name: string
   size: number
   type: string
-  file: File
 }
 
 interface Question {
@@ -19,20 +19,34 @@ interface Question {
   scaleEnd: string
   scaleLabelStart: string
   scaleLabelEnd: string
-  attachments: AttachedFile[]  // ← NEW
+  attachments: AttachedFile[]
+}
+
+// Настройки опроса
+interface SurveySettings {
+  title: string
+  description: string
+  isAnonymous: boolean
+  shuffleQuestions: boolean
+  showProgress: boolean
 }
 
 interface SurveyStore {
-  questions: Question[]
+  // Настройки
+  settings: SurveySettings
+  updateSettings: (data: Partial<SurveySettings>) => void
   
+  // Вопросы
+  questions: Question[]
   addQuestion: () => void
   removeQuestion: (id: string) => void
   updateQuestion: (id: string, data: Partial<Question>) => void
   addOption: (questionId: string) => void
   removeOption: (questionId: string, optionIndex: number) => void
   updateOption: (questionId: string, optionIndex: number, value: string) => void
-  addAttachment: (questionId: string, file: File) => void      // ← NEW
-  removeAttachment: (questionId: string, fileId: string) => void // ← NEW
+  
+  // Сброс
+  resetSurvey: () => void
 }
 
 const createEmptyQuestion = (): Question => ({
@@ -44,79 +58,78 @@ const createEmptyQuestion = (): Question => ({
   scaleEnd: '5',
   scaleLabelStart: '',
   scaleLabelEnd: '',
-  attachments: [],  // ← NEW
+  attachments: [],
 })
 
-export const useSurveyStore = create<SurveyStore>((set) => ({
-  questions: [createEmptyQuestion()],
+const initialSettings: SurveySettings = {
+  title: '',
+  description: '',
+  isAnonymous: false,
+  shuffleQuestions: false,
+  showProgress: true,
+}
 
-  addQuestion: () => set((state) => ({
-    questions: [...state.questions, createEmptyQuestion()]
-  })),
+export const useSurveyStore = create<SurveyStore>()(
+  persist(
+    (set) => ({
+      // Настройки
+      settings: initialSettings,
+      
+      updateSettings: (data) => set((state) => ({
+        settings: { ...state.settings, ...data }
+      })),
 
-  removeQuestion: (id) => set((state) => ({
-    questions: state.questions.length > 1 
-      ? state.questions.filter((q) => q.id !== id)
-      : state.questions
-  })),
+      // Вопросы
+      questions: [createEmptyQuestion()],
 
-  updateQuestion: (id, data) => set((state) => ({
-    questions: state.questions.map((q) =>
-      q.id === id ? { ...q, ...data } : q
-    )
-  })),
+      addQuestion: () => set((state) => ({
+        questions: [...state.questions, createEmptyQuestion()]
+      })),
 
-  addOption: (questionId) => set((state) => ({
-    questions: state.questions.map((q) =>
-      q.id === questionId 
-        ? { ...q, options: [...q.options, ''] }
-        : q
-    )
-  })),
+      removeQuestion: (id) => set((state) => ({
+        questions: state.questions.length > 1
+          ? state.questions.filter((q) => q.id !== id)
+          : state.questions
+      })),
 
-  removeOption: (questionId, optionIndex) => set((state) => ({
-    questions: state.questions.map((q) =>
-      q.id === questionId && q.options.length > 1
-        ? { ...q, options: q.options.filter((_, i) => i !== optionIndex) }
-        : q
-    )
-  })),
+      updateQuestion: (id, data) => set((state) => ({
+        questions: state.questions.map((q) =>
+          q.id === id ? { ...q, ...data } : q
+        )
+      })),
 
-  updateOption: (questionId, optionIndex, value) => set((state) => ({
-    questions: state.questions.map((q) =>
-      q.id === questionId
-        ? { ...q, options: q.options.map((opt, i) => i === optionIndex ? value : opt) }
-        : q
-    )
-  })),
+      addOption: (questionId) => set((state) => ({
+        questions: state.questions.map((q) =>
+          q.id === questionId
+            ? { ...q, options: [...q.options, ''] }
+            : q
+        )
+      })),
 
-  // ← NEW: Добавить файл
-  addAttachment: (questionId, file) => set((state) => ({
-    questions: state.questions.map((q) =>
-      q.id === questionId
-        ? {
-            ...q,
-            attachments: [
-              ...q.attachments,
-              {
-                id: Date.now().toString(),
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                file: file,
-              }
-            ]
-          }
-        : q
-    )
-  })),
+      removeOption: (questionId, optionIndex) => set((state) => ({
+        questions: state.questions.map((q) =>
+          q.id === questionId && q.options.length > 1
+            ? { ...q, options: q.options.filter((_, i) => i !== optionIndex) }
+            : q
+        )
+      })),
 
-  // ← NEW: Удалить файл
-  removeAttachment: (questionId, fileId) => set((state) => ({
-    questions: state.questions.map((q) =>
-      q.id === questionId
-        ? { ...q, attachments: q.attachments.filter((a) => a.id !== fileId) }
-        : q
-    )
-  })),
-}))
+      updateOption: (questionId, optionIndex, value) => set((state) => ({
+        questions: state.questions.map((q) =>
+          q.id === questionId
+            ? { ...q, options: q.options.map((opt, i) => i === optionIndex ? value : opt) }
+            : q
+        )
+      })),
+
+      // Сброс всего опроса
+      resetSurvey: () => set({
+        settings: initialSettings,
+        questions: [createEmptyQuestion()],
+      }),
+    }),
+    {
+      name: 'survey-storage', // ключ в localStorage
+    }
+  )
+)
