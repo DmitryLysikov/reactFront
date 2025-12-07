@@ -1,10 +1,17 @@
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { QuestionResponseCard } from "./question-response-card"
+import { FileText } from "lucide-react"
 import { PollDto } from "@/api/poll-api"
 
 interface SurveyRespondentProps {
-  poll: PollDto
+  poll: PollDto & {
+    attachments?: Array<{
+      id: string
+      name: string
+      url: string
+      type: string
+    }>
+  }
   onVote: (optionId: number | number[]) => void
   isVoting?: boolean
 }
@@ -69,6 +76,52 @@ export function SurveyRespondent({ poll, onVote, isVoting }: SurveyRespondentPro
         {/* Карточка опроса */}
         <div className="bg-orange-500 rounded-3xl p-6">
           
+          {/* Вложения с превью (если есть) */}
+          {poll.attachments && poll.attachments.length > 0 && (
+            <div className="mb-4 space-y-2">
+              {poll.attachments.map((attachment) => {
+                const isImage = attachment.type?.startsWith('image/')
+
+                return (
+                  <div key={attachment.id} className="bg-white/20 rounded-lg p-2">
+                    {isImage ? (
+                      <div>
+                        <img
+                          src={attachment.url}
+                          alt={attachment.name}
+                          className="w-full max-h-48 object-contain rounded-lg cursor-pointer hover:opacity-90 transition"
+                          onClick={() => window.open(attachment.url, '_blank')}
+                          title="Нажмите чтобы открыть в полном размере"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            console.error('Ошибка загрузки изображения')
+                            target.style.display = 'none'
+                          }}
+                        />
+                        <p className="text-white text-xs mt-1 text-center">
+                          {attachment.name}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-white text-sm">
+                        <FileText className="size-4" />
+                        <a
+                          href={attachment.url}
+                          download={attachment.name}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="truncate hover:underline cursor-pointer"
+                        >
+                          {attachment.name}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {/* Если НЕ голосовал — форма */}
           {!hasVoted && (
             <div className="space-y-2">

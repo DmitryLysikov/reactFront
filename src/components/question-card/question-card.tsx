@@ -3,6 +3,7 @@ import { X, Plus, Paperclip, FileText, Image, File } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -12,21 +13,19 @@ import {
 } from "@/components/ui/select"
 import { useSurveyStore } from "@/store/survey-store"
 
-type QuestionType = 'single' | 'multiple' | 'short' | 'long' | 'scale'
+type QuestionType = 'single' | 'multiple' | 'scale'
 
 interface QuestionCardProps {
   questionId: string
   questionNumber: number
 }
 
-// Форматирование размера файла
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 
-// Иконка по типу файла
 function FileIcon({ type }: { type: string }) {
   if (type.startsWith('image/')) return <Image className="size-4" />
   if (type.includes('pdf') || type.includes('document')) return <FileText className="size-4" />
@@ -50,16 +49,13 @@ export function QuestionCard({ questionId, questionNumber }: QuestionCardProps) 
   if (!question) return null
 
   const isChoiceType = question.type === "single" || question.type === "multiple"
-  const isTextType = question.type === "short" || question.type === "long"
   const isScaleType = question.type === "scale"
 
-  // Обработка выбора файлов
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
 
     Array.from(files).forEach((file) => {
-      // Исключаем видео файлы
       if (file.type.startsWith('video/')) {
         alert('Видео файлы не поддерживаются')
         return
@@ -67,7 +63,6 @@ export function QuestionCard({ questionId, questionNumber }: QuestionCardProps) 
       addAttachment(questionId, file)
     })
 
-    // Сбрасываем input чтобы можно было выбрать тот же файл снова
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -98,7 +93,6 @@ export function QuestionCard({ questionId, questionNumber }: QuestionCardProps) 
             className="flex-1 bg-amber-600/60 border-none text-white placeholder:text-white/70 h-12"
           />
           
-          {/* Скрытый input для файлов */}
           <input
             ref={fileInputRef}
             type="file"
@@ -118,31 +112,78 @@ export function QuestionCard({ questionId, questionNumber }: QuestionCardProps) 
           </Button>
         </div>
 
-        {/* Список вложенных файлов */}
+        {/* Список вложенных файлов с превью изображений */}
         {question.attachments.length > 0 && (
           <div className="mt-3 space-y-2">
-            {question.attachments.map((attachment) => (
-              <div 
-                key={attachment.id}
-                className="flex items-center gap-2 bg-amber-600/40 rounded-lg px-3 py-2"
-              >
-                <FileIcon type={attachment.type} />
-                <span className="flex-1 text-white text-sm truncate">
-                  {attachment.name}
-                </span>
-                <span className="text-white/60 text-xs">
-                  {formatFileSize(attachment.size)}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeAttachment(questionId, attachment.id)}
-                  className="size-6 text-white/70 hover:text-white hover:bg-amber-900/50"
+            {question.attachments.map((attachment) => {
+              const isImage = attachment.type.startsWith('image/')
+
+              return (
+                <div 
+                  key={attachment.id}
+                  className="bg-amber-600/40 rounded-lg p-3"
                 >
-                  <X className="size-3" />
-                </Button>
-              </div>
-            ))}
+                  {isImage ? (
+                    // Превью изображения
+                    <div className="space-y-2">
+                      <img
+                        src={attachment.dataUrl}
+                        alt={attachment.name}
+                        className="w-full max-h-48 object-contain rounded-lg bg-white/20 cursor-pointer hover:opacity-90 transition"
+                        onClick={() => window.open(attachment.dataUrl, '_blank')}
+                        title="Нажмите чтобы открыть в полном размере"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          console.error('Ошибка загрузки изображения')
+                          target.style.display = 'none'
+                        }}
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-sm truncate flex-1">
+                          {attachment.name}
+                        </span>
+                        <span className="text-white/60 text-xs ml-2">
+                          {formatFileSize(attachment.size)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeAttachment(questionId, attachment.id)}
+                          className="size-6 text-white/70 hover:text-white hover:bg-amber-900/50 ml-2"
+                        >
+                          <X className="size-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    // Обычный файл (не изображение) - кликабельный
+                    <div className="flex items-center gap-2">
+                      <FileIcon type={attachment.type} />
+                      <a
+                        href={attachment.dataUrl}
+                        download={attachment.name}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 text-white text-sm truncate hover:underline cursor-pointer"
+                      >
+                        {attachment.name}
+                      </a>
+                      <span className="text-white/60 text-xs">
+                        {formatFileSize(attachment.size)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeAttachment(questionId, attachment.id)}
+                        className="size-6 text-white/70 hover:text-white hover:bg-amber-900/50"
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
@@ -159,13 +200,11 @@ export function QuestionCard({ questionId, questionNumber }: QuestionCardProps) 
           <SelectContent>
             <SelectItem value="single">Один из списка</SelectItem>
             <SelectItem value="multiple">Несколько из списка</SelectItem>
-            <SelectItem value="short">Краткий ответ</SelectItem>
-            <SelectItem value="long">Развёрнутый ответ</SelectItem>
             <SelectItem value="scale">Шкала</SelectItem>
           </SelectContent>
         </Select>
       </div>
-      
+
       {/* Тип: Один из списка / Несколько из списка */}
       {isChoiceType && (
         <div>
@@ -194,6 +233,35 @@ export function QuestionCard({ questionId, questionNumber }: QuestionCardProps) 
             ))}
           </div>
 
+          {/* Свой вариант ответа */}
+          <div className="mt-4 p-4 bg-amber-600/40 rounded-xl">
+            <div className="flex items-center gap-3 mb-3">
+              <Checkbox
+                id={`custom-${questionId}`}
+                checked={question.allowCustomAnswer}
+                onCheckedChange={(checked) => 
+                  updateQuestion(questionId, { allowCustomAnswer: !!checked })
+                }
+                className="border-white data-[state=checked]:bg-orange-600"
+              />
+              <Label 
+                htmlFor={`custom-${questionId}`}
+                className="text-white font-medium cursor-pointer"
+              >
+                Разрешить свой вариант ответа
+              </Label>
+            </div>
+            
+            {question.allowCustomAnswer && (
+              <Input
+                value={question.customAnswerText}
+                onChange={(e) => updateQuestion(questionId, { customAnswerText: e.target.value })}
+                placeholder="Введите текст для поля 'Свой вариант'"
+                className="bg-amber-600/60 border-none text-white placeholder:text-white/70 h-12"
+              />
+            )}
+          </div>
+
           <div className="flex justify-center mt-3">
             <Button
               variant="ghost"
@@ -204,23 +272,6 @@ export function QuestionCard({ questionId, questionNumber }: QuestionCardProps) 
               <Plus className="size-5" />
             </Button>
           </div>
-        </div>
-      )}
-
-      {/* Тип: Краткий ответ / Развёрнутый ответ */}
-      {isTextType && (
-        <div>
-          <Label className="text-white text-xl font-semibold mb-3">
-            Ответ
-          </Label>
-          <Input
-            disabled
-            placeholder={question.type === "short" ? "Краткий ответ" : "Развёрнутый ответ"}
-            className="bg-amber-600/60 border-none text-white placeholder:text-white/50 h-12"
-          />
-          <p className="text-white/60 text-sm mt-2">
-            Пользователь введёт {question.type === "short" ? "краткий" : "развёрнутый"} ответ
-          </p>
         </div>
       )}
 

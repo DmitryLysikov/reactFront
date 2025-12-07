@@ -1,13 +1,14 @@
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { FileText } from "lucide-react"
 import { useSurveyStore } from "@/store/survey-store"
 
 export function SurveyPreview() {
   const settings = useSurveyStore((state) => state.settings)
   const questions = useSurveyStore((state) => state.questions)
   
-  // Локальные ответы для превью
   const [answers, setAnswers] = useState<Record<string, any>>({})
+  const [submitted, setSubmitted] = useState(false)
 
   const updateAnswer = (questionId: string, value: any) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }))
@@ -20,6 +21,38 @@ export function SurveyPreview() {
     } else {
       setAnswers(prev => ({ ...prev, [questionId]: current.filter((i: number) => i !== optionIndex) }))
     }
+  }
+
+  const handleCustomSingleChange = (questionId: string, checked: boolean) => {
+    if (checked) {
+      setAnswers(prev => ({ ...prev, [questionId]: 'custom' }))
+    } else {
+      setAnswers(prev => {
+        const newAnswers = { ...prev }
+        delete newAnswers[questionId]
+        delete newAnswers[`${questionId}-custom`]
+        return newAnswers
+      })
+    }
+  }
+
+  const handleCustomMultipleChange = (questionId: string, checked: boolean) => {
+    const current = answers[questionId] || []
+    if (checked) {
+      setAnswers(prev => ({ ...prev, [questionId]: [...current, 'custom'] }))
+    } else {
+      setAnswers(prev => ({
+        ...prev,
+        [questionId]: current.filter((item: any) => item !== 'custom'),
+        [`${questionId}-custom`]: undefined
+      }))
+    }
+  }
+
+  const handleSubmit = () => {
+    console.log('Ответы:', answers)
+    setSubmitted(true)
+    alert('Голос отправлен! (тест)')
   }
 
   if (questions.length === 0 || !questions[0].text) {
@@ -42,10 +75,21 @@ export function SurveyPreview() {
             <p className="text-gray-600 mt-1">{settings.description}</p>
           )}
         </div>
-        <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 rounded-xl">
-          Отправить
-        </Button>
+        {!submitted && (
+          <Button 
+            onClick={handleSubmit}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-6 rounded-xl"
+          >
+            Отправить
+          </Button>
+        )}
       </div>
+
+      {submitted && (
+        <div className="bg-green-100 text-green-700 p-4 rounded-xl mb-6">
+          ✓ Спасибо! Ваш ответ записан.
+        </div>
+      )}
 
       {/* Вопросы */}
       <div className="space-y-4">
@@ -53,7 +97,6 @@ export function SurveyPreview() {
           if (!question.text) return null
           
           const isChoiceType = question.type === 'single' || question.type === 'multiple'
-          const isTextType = question.type === 'short' || question.type === 'long'
           const isScaleType = question.type === 'scale'
 
           return (
@@ -62,13 +105,57 @@ export function SurveyPreview() {
                 {qIndex + 1}. {question.text}
               </h3>
 
-              {/* Single / Multiple choice */}
-              {isChoiceType && (
+              {/* Вложения с превью */}
+              {question.attachments.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  {question.attachments.map((attachment) => {
+                    const isImage = attachment.type.startsWith('image/')
+
+                    return (
+                      <div key={attachment.id} className="bg-white/20 rounded-lg p-2">
+                        {isImage ? (
+                          <div>
+                            <img
+                              src={attachment.dataUrl}
+                              alt={attachment.name}
+                              className="w-full max-h-48 object-contain rounded-lg cursor-pointer hover:opacity-90 transition"
+                              onClick={() => window.open(attachment.dataUrl, '_blank')}
+                              title="Нажмите чтобы открыть в полном размере"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                console.error('Ошибка загрузки изображения')
+                                target.style.display = 'none'
+                              }}
+                            />
+                            <p className="text-white text-xs mt-1 text-center">
+                              {attachment.name}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-white text-sm">
+                            <FileText className="size-4" />
+                            <a
+                              href={attachment.dataUrl}
+                              download={attachment.name}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="truncate hover:underline cursor-pointer"
+                            >
+                              {attachment.name}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Single choice */}
+              {question.type === 'single' && (
                 <div className="space-y-2">
                   {question.options.filter(o => o).map((option, oIndex) => {
-                    const isSelected = question.type === 'multiple'
-                      ? (answers[question.id] || []).includes(oIndex)
-                      : answers[question.id] === oIndex
+                    const isSelected = answers[question.id] === oIndex
 
                     return (
                       <label
@@ -79,66 +166,137 @@ export function SurveyPreview() {
                           ${isSelected ? 'border-orange-700' : 'border-transparent'}
                         `}
                       >
-                        {question.type === 'multiple' ? (
-                          <div className={`
-                            w-5 h-5 rounded border-2 flex items-center justify-center
-                            ${isSelected ? 'border-orange-600 bg-orange-600' : 'border-gray-300'}
-                          `}>
-                            {isSelected && (
-                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            )}
-                          </div>
-                        ) : (
-                          <div className={`
-                            w-5 h-5 rounded-full border-2 flex items-center justify-center
-                            ${isSelected ? 'border-orange-600' : 'border-gray-300'}
-                          `}>
-                            {isSelected && (
-                              <div className="w-2.5 h-2.5 rounded-full bg-orange-600" />
-                            )}
-                          </div>
-                        )}
+                        <div className={`
+                          w-5 h-5 rounded-full border-2 flex items-center justify-center
+                          ${isSelected ? 'border-orange-600' : 'border-gray-300'}
+                        `}>
+                          {isSelected && (
+                            <div className="w-2.5 h-2.5 rounded-full bg-orange-600" />
+                          )}
+                        </div>
                         <span className="text-gray-700">{option}</span>
                         <input
-                          type={question.type === 'multiple' ? 'checkbox' : 'radio'}
+                          type="radio"
+                          name={`question-${question.id}`}
                           className="hidden"
                           checked={isSelected}
-                          onChange={(e) => {
-                            if (question.type === 'multiple') {
-                              handleMultipleChange(question.id, oIndex, e.target.checked)
-                            } else {
-                              updateAnswer(question.id, oIndex)
-                            }
-                          }}
+                          onChange={() => updateAnswer(question.id, oIndex)}
+                          disabled={submitted}
                         />
                       </label>
                     )
                   })}
+
+                  {/* Свой вариант для single */}
+                  {question.allowCustomAnswer && (
+                    <div className="mt-3 p-3 bg-white rounded-xl">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <div className={`
+                          w-5 h-5 rounded-full border-2 flex items-center justify-center
+                          ${answers[question.id] === 'custom' ? 'border-orange-600' : 'border-gray-300'}
+                        `}>
+                          {answers[question.id] === 'custom' && (
+                            <div className="w-2.5 h-2.5 rounded-full bg-orange-600" />
+                          )}
+                        </div>
+                        <span className="text-gray-700 font-medium">
+                          {question.customAnswerText || 'Свой вариант:'}
+                        </span>
+                        <input
+                          type="radio"
+                          name={`question-${question.id}`}
+                          checked={answers[question.id] === 'custom'}
+                          onChange={(e) => handleCustomSingleChange(question.id, e.target.checked)}
+                          disabled={submitted}
+                          className="hidden"
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        value={answers[`${question.id}-custom`] || ''}
+                        onChange={(e) => setAnswers(prev => ({ ...prev, [`${question.id}-custom`]: e.target.value }))}
+                        placeholder="Введите свой вариант"
+                        disabled={submitted || answers[question.id] !== 'custom'}
+                        className="mt-2 w-full bg-gray-50 rounded-lg px-4 py-2 outline-none disabled:opacity-50"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Short text */}
-              {question.type === 'short' && (
-                <input
-                  type="text"
-                  value={answers[question.id] || ''}
-                  onChange={(e) => updateAnswer(question.id, e.target.value)}
-                  placeholder="Ваш ответ"
-                  className="w-full bg-white rounded-xl px-4 py-3 outline-none"
-                />
-              )}
+              {/* Multiple choice */}
+              {question.type === 'multiple' && (
+                <div className="space-y-2">
+                  {question.options.filter(o => o).map((option, oIndex) => {
+                    const selected = (answers[question.id] || []).includes(oIndex)
 
-              {/* Long text */}
-              {question.type === 'long' && (
-                <textarea
-                  value={answers[question.id] || ''}
-                  onChange={(e) => updateAnswer(question.id, e.target.value)}
-                  placeholder="Ваш ответ"
-                  rows={4}
-                  className="w-full bg-white rounded-xl px-4 py-3 outline-none resize-none"
-                />
+                    return (
+                      <label
+                        key={oIndex}
+                        className={`
+                          flex items-center gap-3 bg-white rounded-xl px-4 py-3 cursor-pointer
+                          border-2 transition
+                          ${selected ? 'border-orange-700' : 'border-transparent'}
+                        `}
+                      >
+                        <div className={`
+                          w-5 h-5 rounded border-2 flex items-center justify-center
+                          ${selected ? 'border-orange-600 bg-orange-600' : 'border-gray-300'}
+                        `}>
+                          {selected && (
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-gray-700">{option}</span>
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={selected}
+                          disabled={submitted}
+                          onChange={(e) => handleMultipleChange(question.id, oIndex, e.target.checked)}
+                        />
+                      </label>
+                    )
+                  })}
+
+                  {/* Свой вариант для multiple */}
+                  {question.allowCustomAnswer && (
+                    <div className="mt-3 p-3 bg-white rounded-xl">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <div className={`
+                          w-5 h-5 rounded border-2 flex items-center justify-center
+                          ${(answers[question.id] || []).includes('custom') ? 'border-orange-600 bg-orange-600' : 'border-gray-300'}
+                        `}>
+                          {(answers[question.id] || []).includes('custom') && (
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-gray-700 font-medium">
+                          {question.customAnswerText || 'Свой вариант:'}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={(answers[question.id] || []).includes('custom')}
+                          onChange={(e) => handleCustomMultipleChange(question.id, e.target.checked)}
+                          disabled={submitted}
+                          className="hidden"
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        value={answers[`${question.id}-custom`] || ''}
+                        onChange={(e) => setAnswers(prev => ({ ...prev, [`${question.id}-custom`]: e.target.value }))}
+                        placeholder="Введите свой вариант"
+                        disabled={submitted || !(answers[question.id] || []).includes('custom')}
+                        className="mt-2 w-full bg-gray-50 rounded-lg px-4 py-2 outline-none disabled:opacity-50"
+                      />
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Scale */}
@@ -155,7 +313,8 @@ export function SurveyPreview() {
                     ).map((num) => (
                       <button
                         key={num}
-                        onClick={() => updateAnswer(question.id, num)}
+                        onClick={() => !submitted && updateAnswer(question.id, num)}
+                        disabled={submitted}
                         className={`
                           flex-1 py-3 rounded-xl font-medium transition
                           ${answers[question.id] === num

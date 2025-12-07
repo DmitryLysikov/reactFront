@@ -1,13 +1,14 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'  // ← для сохранения в localStorage
+import { persist } from 'zustand/middleware'
 
-type QuestionType = 'single' | 'multiple' | 'short' | 'long' | 'scale'
+type QuestionType = 'single' | 'multiple' | 'scale'
 
 interface AttachedFile {
   id: string
   name: string
   size: number
   type: string
+  dataUrl: string  // ← base64 URL для изображений
 }
 
 interface Question {
@@ -20,9 +21,10 @@ interface Question {
   scaleLabelStart: string
   scaleLabelEnd: string
   attachments: AttachedFile[]
+  allowCustomAnswer: boolean
+  customAnswerText: string
 }
 
-// Настройки опроса
 interface SurveySettings {
   title: string
   description: string
@@ -32,11 +34,9 @@ interface SurveySettings {
 }
 
 interface SurveyStore {
-  // Настройки
   settings: SurveySettings
   updateSettings: (data: Partial<SurveySettings>) => void
   
-  // Вопросы
   questions: Question[]
   addQuestion: () => void
   removeQuestion: (id: string) => void
@@ -44,8 +44,8 @@ interface SurveyStore {
   addOption: (questionId: string) => void
   removeOption: (questionId: string, optionIndex: number) => void
   updateOption: (questionId: string, optionIndex: number, value: string) => void
-  
-  // Сброс
+  addAttachment: (questionId: string, file: File) => void
+  removeAttachment: (questionId: string, fileId: string) => void
   resetSurvey: () => void
 }
 
@@ -59,6 +59,8 @@ const createEmptyQuestion = (): Question => ({
   scaleLabelStart: '',
   scaleLabelEnd: '',
   attachments: [],
+  allowCustomAnswer: false,
+  customAnswerText: '',
 })
 
 const initialSettings: SurveySettings = {
@@ -72,14 +74,12 @@ const initialSettings: SurveySettings = {
 export const useSurveyStore = create<SurveyStore>()(
   persist(
     (set) => ({
-      // Настройки
       settings: initialSettings,
       
       updateSettings: (data) => set((state) => ({
         settings: { ...state.settings, ...data }
       })),
 
-      // Вопросы
       questions: [createEmptyQuestion()],
 
       addQuestion: () => set((state) => ({
@@ -122,14 +122,58 @@ export const useSurveyStore = create<SurveyStore>()(
         )
       })),
 
-      // Сброс всего опроса
+      // Добавить вложение с base64
+      addAttachment: (questionId, file) => {
+        const reader = new FileReader()
+        
+        reader.onloadend = () => {
+          const dataUrl = reader.result as string
+          
+          set((state) => ({
+            questions: state.questions.map((q) =>
+              q.id === questionId
+                ? {
+                    ...q,
+                    attachments: [
+                      ...q.attachments,
+                      {
+                        id: `${Date.now()}-${Math.random()}`,
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        dataUrl: dataUrl,
+                      },
+                    ]
+                  }
+                : q
+            )
+          }))
+        }
+        
+        reader.onerror = () => {
+          console.error('Ошибка чтения файла')
+          alert('Не удалось загрузить файл')
+        }
+        
+        reader.readAsDataURL(file)
+      },
+
+      // Удалить вложение
+      removeAttachment: (questionId, fileId) => set((state) => ({
+        questions: state.questions.map((q) =>
+          q.id === questionId
+            ? { ...q, attachments: q.attachments.filter((a) => a.id !== fileId) }
+            : q
+        )
+      })),
+
       resetSurvey: () => set({
         settings: initialSettings,
         questions: [createEmptyQuestion()],
       }),
     }),
     {
-      name: 'survey-storage', // ключ в localStorage
+      name: 'survey-storage',
     }
   )
 )
