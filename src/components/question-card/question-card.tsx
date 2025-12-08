@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useSurveyStore } from "@/store/survey-store"
+import './question-control.css';
 
 type QuestionType = 'single' | 'multiple' | 'scale'
 

@@ -1,3 +1,4 @@
+import './index.css'; // tailwind/shadcn
 import { IRemoteControlLoader } from '@directum/sungero-remote-component-types';
 
 import * as ActionPanelCoverLoader from './src/loaders/actions-panel-cover-loader';
