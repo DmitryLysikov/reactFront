@@ -40,7 +40,7 @@ export const surveyApi = {
   },
 
   create: async (data: CreateSurveyDto): Promise<Survey> => {
-    const response = await api.post('/surveys', data)
+    const response = await api.post('/Vote.SurveyCreate', data)
     return response.data
   },
 

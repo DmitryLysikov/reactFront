@@ -1,14 +1,14 @@
 import axios, { InternalAxiosRequestConfig } from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1/Integration/odata/Vote/Vote.',
+  baseURL: 'http://192.168.3.2/Integration/odata/Vote',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
   auth: {
     username: 'Administrator',
-    password: '11',
+    password: 'Admin123',
   },
 })
 
