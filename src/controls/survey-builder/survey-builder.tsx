@@ -4,38 +4,92 @@ import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { QuestionCard } from "@/components/question-card/question-card"
 import { useSurveyStore } from "@/store/survey-store"
-import { useCreateSurvey } from "@/api"  // ← импорт хука
+import { useCreateSurvey } from "@/api/hooks/use-surveys"
+import { SurveyCreateDto, PollCreateDto, PollOptionCreateDto, OptionType } from "@/api/survey-api"
 
 export function SurveyBuilder() {
   const settings = useSurveyStore((state) => state.settings)
   const questions = useSurveyStore((state) => state.questions)
   const addQuestion = useSurveyStore((state) => state.addQuestion)
   
-  // React Query мутация для сохранения
   const createSurvey = useCreateSurvey()
 
-  // Обработчик сохранения
+  // Маппинг из Zustand в формат бэкенда
+  const mapToApiFormat = (): SurveyCreateDto => {
+    const polls: PollCreateDto[] = questions.map((q) => {
+      let options: PollOptionCreateDto[] = []
+
+      if (q.type === 'scale') {
+        // Для шкалы - один вариант с Type=1
+        options = [{
+          Text: q.text,
+          Type: OptionType.Scale,
+          ScaleMin: parseInt(q.scaleStart) || 1,
+          ScaleMax: parseInt(q.scaleEnd) || 5,
+          ScaleMinText: q.scaleLabelStart || '',
+          ScaleMaxText: q.scaleLabelEnd || '',
+        }]
+      } else {
+        // Для single/multiple - обычные варианты
+        options = q.options
+          .filter(opt => opt.trim() !== '')
+          .map(opt => ({
+            Text: opt,
+            Type: OptionType.Standard,
+            ScaleMin: 0,
+            ScaleMax: 0,
+            ScaleMinText: '',
+            ScaleMaxText: '',
+          }))
+
+        // Если разрешён свой вариант - добавляем Type=2
+        if (q.allowCustomAnswer) {
+          options.push({
+            Text: q.customAnswerText || 'Свой вариант',
+            Type: OptionType.Detailed,
+            ScaleMin: 0,
+            ScaleMax: 0,
+            ScaleMinText: '',
+            ScaleMaxText: '',
+          })
+        }
+      }
+
+      return {
+        QuestionText: q.text,
+        IsMultipleChoice: q.type === 'multiple',
+        Options: options,
+      }
+    })
+
+           return {
+      SurveyName: settings.title || 'Без названия',
+      Description: settings.description || '',
+      IsAnonymous: settings.isAnonymous,
+      IsMix: false,
+      IsShowProgress: settings.showProgress,
+      PollCreateDto: polls,
+    }
+  }
+
   const handleSave = () => {
-  createSurvey.mutate({
-    title: settings.title || 'Без названия',
-    description: settings.description,
-    questions: questions.map(({ id, attachments, ...rest }) => rest),
-  })
+    const surveyData = mapToApiFormat()
+    console.log('Отправляем на бэкенд:', surveyData)
+    createSurvey.mutate(surveyData)
   }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="bg-gray-200 p-6 rounded-3xl space-y-6">
-      {questions.map((question, index) => (
-        <QuestionCard
-          key={question.id}
-          questionId={question.id}
-          questionNumber={index + 1}
-        />
-      ))}
-    </div>
+        {questions.map((question, index) => (
+          <QuestionCard
+            key={question.id}
+            questionId={question.id}
+            questionNumber={index + 1}
+          />
+        ))}
+      </div>
 
-      {/* Кнопка добавить вопрос */}
       <div className="flex justify-center">
         <Button
           onClick={addQuestion}
@@ -47,7 +101,6 @@ export function SurveyBuilder() {
         </Button>
       </div>
 
-      {/* Кнопка сохранить */}
       <div className="flex justify-center pt-4">
         <Button
           onClick={handleSave}

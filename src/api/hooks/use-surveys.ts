@@ -1,13 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { surveyApi, Survey, CreateSurveyDto } from '../survey-api'
+import { surveyApi, SurveyCreateDto, SurveyGetDto } from '../survey-api'
 
-// Ключи для кеша
-export const surveyKeys = {
+const surveyKeys = {
   all: ['surveys'] as const,
-  detail: (id: string) => ['surveys', id] as const,
+  detail: (id: number) => ['surveys', id] as const,
 }
 
-// Получить все опросы
 export function useSurveys() {
   return useQuery({
     queryKey: surveyKeys.all,
@@ -15,8 +13,7 @@ export function useSurveys() {
   })
 }
 
-// Получить один опрос
-export function useSurvey(id: string) {
+export function useSurvey(id: number) {
   return useQuery({
     queryKey: surveyKeys.detail(id),
     queryFn: () => surveyApi.getById(id),
@@ -24,38 +21,32 @@ export function useSurvey(id: string) {
   })
 }
 
-// Создать опрос
 export function useCreateSurvey() {
   const queryClient = useQueryClient()
-
   return useMutation({
-    mutationFn: (data: CreateSurveyDto) => surveyApi.create(data),
+    mutationFn: (data: SurveyCreateDto) => surveyApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: surveyKeys.all })
     },
   })
 }
 
-// Обновить опрос
 export function useUpdateSurvey() {
   const queryClient = useQueryClient()
-
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateSurveyDto> }) =>
+    mutationFn: ({ id, data }: { id: number; data: SurveyCreateDto }) => 
       surveyApi.update(id, data),
-    onSuccess: (_, variables) => {
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: surveyKeys.all })
-      queryClient.invalidateQueries({ queryKey: surveyKeys.detail(variables.id) })
+      queryClient.invalidateQueries({ queryKey: surveyKeys.detail(id) })
     },
   })
 }
 
-// Удалить опрос
 export function useDeleteSurvey() {
   const queryClient = useQueryClient()
-
   return useMutation({
-    mutationFn: (id: string) => surveyApi.delete(id),
+    mutationFn: surveyApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: surveyKeys.all })
     },
