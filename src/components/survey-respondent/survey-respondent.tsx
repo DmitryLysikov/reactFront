@@ -20,7 +20,10 @@ export function SurveyRespondent({ poll, onVote, isVoting }: SurveyRespondentPro
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [selectedOptions, setSelectedOptions] = useState<number[]>([])
 
-  const hasVoted = poll.MyVoteOptionId !== null
+  // Для множественного выбора используем MyVoteOptionIds, для одиночного - MyVoteOptionId
+  const hasVoted = poll.IsMultipleChoice 
+    ? (poll.MyVoteOptionIds && poll.MyVoteOptionIds.length > 0)
+    : poll.MyVoteOptionId !== null
   const totalVotes = poll.Options.reduce((sum, opt) => sum + (opt.VotesCount || 0), 0)
 
   const handleSubmit = () => {
@@ -190,7 +193,10 @@ export function SurveyRespondent({ poll, onVote, isVoting }: SurveyRespondentPro
                 const percent = totalVotes > 0
                   ? Math.round(((option.VotesCount || 0) / totalVotes) * 100)
                   : 0
-                const isMyVote = option.Id === poll.MyVoteOptionId
+                // Для множественного выбора проверяем массив, для одиночного - одно значение
+                const isMyVote = poll.IsMultipleChoice
+                  ? poll.MyVoteOptionIds?.includes(option.Id)
+                  : option.Id === poll.MyVoteOptionId
 
                 return (
                   <div key={option.Id} className="relative overflow-hidden rounded-xl bg-white">

@@ -16,15 +16,24 @@ export function SurveySettings() {
 
         {/* Название */}
         <div className="space-y-2">
-          <Label htmlFor="title">Название опроса</Label>
+          <Label htmlFor="title" className="flex items-center gap-1">
+            Название опроса
+            <span className="text-red-500 font-bold">*</span>
+          </Label>
           <Input
             id="title"
             value={settings.title}
             onChange={(e) => updateSettings({ title: e.target.value })}
             placeholder="Введите название опроса"
-            className="h-12"
+            className={`h-12 ${!settings.title.trim() ? 'border-red-300' : ''}`}
           />
+          {!settings.title.trim() && (
+            <p className="text-sm text-red-600">
+              ⚠️ Это поле обязательно для заполнения
+            </p>
+          )}
         </div>
+        
 
         {/* Описание */}
         <div className="space-y-2">

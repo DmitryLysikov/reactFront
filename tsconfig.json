@@ -32,7 +32,7 @@
     "etc"
   ],
   "include": [
-    "./src/**/*", "index.js",
+    "./src/**/*", "index.js"
   ],
   "types": [
     "node",

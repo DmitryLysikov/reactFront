@@ -83,16 +83,24 @@ export function QuestionCard({ questionId, questionNumber }: QuestionCardProps) 
 
       {/* Question section */}
       <div className="mb-5">
-        <Label className="text-white text-xl font-semibold mb-2">
+        <Label className="text-white text-xl font-semibold mb-2 flex items-center gap-1">
           Вопрос {questionNumber}
+          <span className="text-red-300 font-bold">*</span>
         </Label>
-        <div className="flex gap-4 mt-2">
+        <div className="flex gap-4 mt-2 relative">
           <Input
             value={question.text}
             onChange={(e) => updateQuestion(questionId, { text: e.target.value })}
             placeholder="Введите вопрос"
-            className="flex-1 bg-amber-600/60 border-none text-white placeholder:text-white/70 h-12"
+            className={`flex-1 bg-amber-600/60 border-2 text-white placeholder:text-white/70 h-12 ${
+              !question.text.trim() ? 'border-red-400' : 'border-transparent'
+            }`}
           />
+          {!question.text.trim() && (
+            <p className="absolute -bottom-5 left-0 text-xs text-red-200">
+              ⚠️ Обязательное поле
+            </p>
+          )}
           
           <input
             ref={fileInputRef}
@@ -209,8 +217,9 @@ export function QuestionCard({ questionId, questionNumber }: QuestionCardProps) 
       {/* Тип: Один из списка / Несколько из списка */}
       {isChoiceType && (
         <div>
-          <Label className="text-white text-xl font-semibold mb-3">
+          <Label className="text-white text-xl font-semibold mb-3 flex items-center gap-1">
             Варианты ответа
+            <span className="text-red-300 font-bold">*</span>
           </Label>
 
           <div className="space-y-3 mt-2">

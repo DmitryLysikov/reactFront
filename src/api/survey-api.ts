@@ -44,7 +44,6 @@ export interface SurveyCreateDto {
   SurveyName: string
   Description: string
   IsAnonymous: boolean
-  IsMix: boolean
   IsShowProgress: boolean
   PollCreateDto: PollCreateDto[]
 }

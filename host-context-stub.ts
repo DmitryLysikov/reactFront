@@ -7,6 +7,7 @@ const context: IRemoteComponentContext = {
   tenant: null,
   theme: Theme.Default,
   clientId: '',
+  surveyId: 1, // ID опроса для тестирования (измените на реальный ID из вашей базы)
   logger: {
     error(errorOrmessageTemplate: Error | string, messageTemplateOrArgs?: string | string[], ...args: string[]) {
       console.error(errorOrmessageTemplate, messageTemplateOrArgs, args);

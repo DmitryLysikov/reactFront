@@ -16,6 +16,7 @@ export interface PollDto {
   StatusVote: 'Draft' | 'Active' | 'Closed'
   Options: PollOptionDto[]
   MyVoteOptionId: number | null
+  MyVoteOptionIds?: number[] | null  // Для множественного выбора
   Author?: number | null  // ID создателя опроса
 }
 

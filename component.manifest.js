@@ -74,6 +74,19 @@ module.exports = {
         { locale: 'en', name: 'String property editor' },
         { locale: 'ru', name: 'Редактор строкового свойства' },
       ]
+    },
+    {
+      name: 'SurveyRespondent',
+      loaders: [
+        {
+          name: 'survey-respondent-loader',
+          scope: 'Card'
+        }
+      ],
+      displayNames: [
+        { locale: 'en', name: 'Survey Respondent' },
+        { locale: 'ru', name: 'Опрос для респондента' },
+      ]
     }
   ]
 };
